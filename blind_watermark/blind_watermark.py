@@ -41,8 +41,8 @@ class WaterMark:
             self.wm_bit = wm.flatten() > 128
 
         elif mode == 'str':
-            byte = bin(int(wm_content.encode('utf-8').hex(), base=16))[2:]
-            self.wm_bit = (np.array(list(byte)) == '1')
+            byte_bits = ''.join(f'{byte:08b}' for byte in wm_content.encode('utf-8'))
+            self.wm_bit = (np.array(list(byte_bits)) == '1')
         else:
             self.wm_bit = np.array(wm_content)
 
@@ -102,7 +102,12 @@ class WaterMark:
             wm = 255 * wm.reshape(wm_shape[0], wm_shape[1])
             cv2.imwrite(out_wm_name, wm)
         elif mode == 'str':
-            byte = ''.join(str((i >= 0.5) * 1) for i in wm)
-            wm = bytes.fromhex(hex(int(byte, base=2))[2:]).decode('utf-8', errors='replace')
+            bit_string = ''.join('1' if i >= 0.5 else '0' for i in wm)
+            usable_length = len(bit_string) - (len(bit_string) % 8)
+            byte_values = [
+                int(bit_string[i:i + 8], 2)
+                for i in range(0, usable_length, 8)
+            ]
+            wm = bytes(byte_values).decode('utf-8', errors='replace')
 
         return wm
